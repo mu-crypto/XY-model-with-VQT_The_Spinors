@@ -1,47 +1,73 @@
 import pennylane as qml
 from pennylane import numpy as np
+import networkx as nx
+
+# Intial Variables
+n_qubits = 8
 
 
-n= 8
+G = nx.grid_2d_graph(3, 3) # How to make the grid periodic?
 
-def hamiltonian(i, j):
+dev = qml.device("default.qubits", wires=n_qubits)
 
+
+
+
+# Mathematical Functions
+
+def sigmoid(x):
+    return np.exp(x) / (np.exp(x) + 1)
+
+def prob_dist(params):
+    return np.vstack([sigmoid(params), 1 - sigmoid(params)]).T
+
+
+
+# Initialize Grid
+def intiialize_grid(shape, n):   
+    grid = np.array(range(n))
+    grid = grid.reshape(shape)
     
+    return grid
+            
+    
+# Thermodynamic Functions 
+   
+def hamiltonian(n, graph):
     
     matrix = np.zeros((2 ** n, 2 ** n))
-    
-    x=y=1
 
-    
-    for k in range(n):
-        if k == i or k == j:
-            x = np.kron(x, qml.matrix(qml.PauliX)(0))
-            y = np.kron(y, qml.matrix(qml.PauliY)(0))
-        else:
-            x = np.kron(x, np.identity(2))
-            y = np.kron(y, np.identity(2))
-    matrix = np.add(matrix, np.add(x, y))
-    
+    for i in graph.edges:
+        x = y = z = 1
+        for j in range(0, n):
+            if j == i[0] or j == i[1]:
+                x = np.kron(x, qml.matrix(qml.PauliX)(0))
+                y = np.kron(y, qml.matrix(qml.PauliY)(0))
+                z = np.kron(z, qml.matrix(qml.PauliZ)(0))
+            else:
+                x = np.kron(x, np.identity(2))
+                y = np.kron(y, np.identity(2))
+                z = np.kron(z, np.identity(2))
+
+        matrix = np.add(matrix, np.add(x, np.add(y, z)))
+
     return matrix
-    
             
             
 
 
-def trotterize_partition(m, beta):
+def trotterize_partition(m, beta, n, graph):
     
+    exp_H = np.exp((-beta/m)*hamiltonian(n, graph))
     
-    matrix = 1
-    for i in range(n):
-        for j in range(i+1, n):
-            exp_ham = np.exp(-beta/m*hamiltonian(i,j))
-            np.matmul(matrix, exp_ham)
-            
-    Z = np.trace(np.linalg.matrix_power(matrix, m))
+    Z = np.trace(np.lingalg.matrix_power(exp_H, m))
+    
+      
     
     return Z
+
         
-            
+
         
         
         
