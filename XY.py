@@ -12,12 +12,13 @@ from numba import jit, cuda
 depth = 4
 nr_qubits = 4
 h = 1
-beta_list = [round(1/k,2) for k in range(10,1,-1)]+[k for k in range(1,11)]
+beta_list = [round(1/k,2) for k in range(2,1,-1)]+[k for k in range(1,2)]
 T = [1/beta for beta in beta_list]
 E = []
 C = []
+M = []
 
-interaction_graph = nx.cycle_graph(nr_qubits)
+interaction_graph = nx.grid_graph((2,2), periodic=True)
 dev = qml.device("default.qubit", wires=nr_qubits)
 
 
@@ -38,7 +39,7 @@ def create_hamiltonian_matrix(n, graph):
                 x = np.kron(x, np.identity(2))
                 y = np.kron(y, np.identity(2))
                 
-
+                
         matrix = np.add(matrix, np.add(np.add(x, y),h*z))
 
     return matrix
@@ -217,9 +218,19 @@ for beta in beta_list:
     savetxt(f'beta_is_{beta}_params.csv', out_params, delimiter=',')
     params = np.array(np.loadtxt(f'beta_is_{beta}_params.csv', dtype=float))
     cost, energy = exact_cost(params, beta)
-    variance = np.trace(np.matmul(np.linalg.matrix_power(ham_matrix,2),prep_density_matrix)-np.matmul(prep_density_matrix, ham_matrix))
+    variance = np.abs(np.trace(np.matmul(np.linalg.matrix_power(ham_matrix,2),prep_density_matrix)-np.matmul(prep_density_matrix, ham_matrix)))
     E.append(energy)
     C.append((beta/nr_qubits)**2*variance)
+    
+    
+    z_matrix = 1
+    for i in len(np.shape(prep_density_matrix)[0]):
+        z_matrix = np.kron(z_matrix, qml.matrix(qml.PauliZ(0)))
+    
+    
+    magnetization = np.abs(np.trace(np.matmul(prep_density_matrix, z_matrix)))
+    
+    M.append(magnetization)
     
     
 
@@ -233,11 +244,10 @@ plt.plot(T,C)
 plt.xlabel('T')
 plt.ylabel('C')
 
-
+plt.show()
     
     
     
-
 
 
 
