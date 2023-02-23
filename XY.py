@@ -224,7 +224,7 @@ for beta in beta_list:
     
     
     z_matrix = 1
-    for i in range(len(np.shape(prep_density_matrix)[0])):
+    for i in range(np.shape(prep_density_matrix)[0]):
         z_matrix = np.kron(z_matrix, qml.matrix(qml.PauliZ(0)))
     
     
